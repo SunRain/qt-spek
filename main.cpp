@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
     SpekSpectrogram w;
     w.show();
 
-    w.open("F:\\KuGou\\J.Fla - Shape Of You.mp3");
+    w.open("/media/wangguojian/MEDIA/music/Soloist.mp3");
 
     return a.exec();
 }

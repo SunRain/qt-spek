@@ -3,6 +3,7 @@
 #include "spek-ruler.h"
 #include "spek-spectrogram.h"
 
+#include <QDebug>
 #include <cmath>
 #include <QPainter>
 #include <QDateTime>
@@ -116,6 +117,7 @@ void SpekSpectrogram::paint(QPainter *dc)
             trim(this->path, w - LPAD - RPAD, false)
         );
 
+#if 1  // start duration label
         if (this->duration) {
             // Time ruler.
             int time_factors[] = {1, 2, 5, 10, 20, 30, 1*60, 2*60, 5*60, 10*60, 20*60, 30*60, 0};
@@ -135,7 +137,9 @@ void SpekSpectrogram::paint(QPainter *dc)
                 );
             time_ruler.draw(*dc);
         }
+#endif //end duration label
 
+#if 0 // start sample_rate label
         if (this->sample_rate) {
             // Frequency ruler.
             int freq = this->sample_rate / 2;
@@ -156,9 +160,11 @@ void SpekSpectrogram::paint(QPainter *dc)
                 );
             freq_ruler.draw(*dc);
         }
+#endif //end sample_rate label
     }
 
     // The palette.
+#if 0
     if (h - TPAD - BPAD > 0) {
         dc->drawImage(w - RPAD + GAP, TPAD, this->palette_image.scaled(RULER, h - TPAD - BPAD + 1));
 
@@ -179,6 +185,7 @@ void SpekSpectrogram::paint(QPainter *dc)
         );
         density_ruler.draw(*dc);
     }
+#endif
 }
 
 static void pipeline_cb(int bands, int sample, float *values, void *cb_data)
@@ -188,15 +195,24 @@ static void pipeline_cb(int bands, int sample, float *values, void *cb_data)
 //        spek->stop();
         return;
     }
-
     // TODO: check image size, quit if wrong.
     double range = spek->getURange() - spek->getLRange();
+        qDebug()<<Q_FUNC_INFO<<"----------------- bands "<<bands <<" sample "<<sample <<" range "<<range;
+
+        double les;
     for (int y = 0; y < bands; y++) {
         double value = fmin(spek->getURange(), fmax(spek->getLRange(), values[y]));
         double level = (value - spek->getLRange()) / range;
+        les += level;
         uint32_t color = spek_palette(spek->getPalette(), level);
+
+//        qDebug()<<Q_FUNC_INFO<<" value "<<value <<" level "<<level <<" color "<<color;
+
         spek->getPaintImage()->setPixel(sample, bands - y - 1, color);
     }
+
+    qDebug()<<Q_FUNC_INFO<<" levels "<<(int)les<<" avr "<<les/bands;
+
     spek->update();
 }
 
@@ -213,6 +229,11 @@ void SpekSpectrogram::start()
     int samples = width() - LPAD - RPAD;
     if (samples > 0) {
         this->image = QImage(samples, bits_to_bands(this->fft_bits), QImage::Format_RGB32);
+
+        qDebug()<<Q_FUNC_INFO<<" image  size is "<<image.size()
+               <<" samples "<<samples
+              <<" bits_to_bands(this->fft_bits) ->fft_bits "<<fft_bits;
+
         this->pipeline = spek_pipeline_open(
             this->audio->open(std::string(this->path.toUtf8().data()), this->stream),
             this->fft->create(this->fft_bits),
