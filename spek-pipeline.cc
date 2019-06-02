@@ -28,6 +28,9 @@ struct spek_pipeline
     spek_pipeline_cb cb;
     void *cb_data;
 
+    spek_pipeline_finish_cb fcb;
+    void *fcb_data;
+
     float *coss; // Pre-computed cos table.
     int nfft; // Size of the FFT transform.
     int input_size;
@@ -64,7 +67,9 @@ struct spek_pipeline * spek_pipeline_open(
     enum window_function window_function,
     int samples,
     spek_pipeline_cb cb,
-    void *cb_data
+    void *cb_data,
+    spek_pipeline_finish_cb fcb,
+    void *fcb_data
 )
 {
     spek_pipeline *p = new spek_pipeline();
@@ -76,6 +81,8 @@ struct spek_pipeline * spek_pipeline_open(
     p->samples = samples;
     p->cb = cb;
     p->cb_data = cb_data;
+    p->fcb = fcb;
+    p->fcb_data = fcb_data;
 
     p->coss = NULL;
     p->input = NULL;
@@ -341,6 +348,9 @@ static void * reader_func(void *pp)
 
     // Notify the client.
     p->cb(p->fft->get_output_size(), -1, NULL, p->cb_data);
+
+    p->fcb(p->fcb_data);
+
     return NULL;
 }
 
